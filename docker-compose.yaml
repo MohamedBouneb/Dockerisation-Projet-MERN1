@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0  # Correction: "mongo" pas "monog"
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+    networks:
+      - mern-network
+
+  backend:
+    build: ./server
+    container_name: mern-backend
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    environment:
+      - MONGO_URI=mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin
+      - PORT=${BACKEND_PORT}
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      - mongodb
+    networks:
+      - mern-network
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./client
+    container_name: mern-frontend
+    ports:
+      - "${FRONTEND_PORT}:5000"  
+    environment:
+      - REACT_APP_BACKEND_URL=http://backend:${BACKEND_PORT}  
+    depends_on:
+      - backend
+    networks:
+      - mern-network
+
+volumes:
+  mongo_data:  
+
+networks:
+  mern-network:
+    driver: bridge
